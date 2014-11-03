@@ -618,7 +618,6 @@
     </string-array>
     
     <!-- GPS source selection -->
-    
     <string-array name="location_entries_gps_source">
         <item>@string/location_gps_source_use_internal_antenna</item>
     </string-array>
