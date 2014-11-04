@@ -1440,4 +1440,12 @@ two in order to insert additional control points. \'Remove\' deletes the selecte
     <string name="profile_setup_setup_triggers_description">Please select triggers which will activate this profile</string>
     <string name="profile_setup_actions_description">Now configure what happens when the profile is activated</string>
 
+    <!-- GPS source selection -->
+    <string name="location_gps_source_title">GPS source</string>
+    <string name="location_gps_source_summary">Choose to use either an external Bluetooth GPS antenna or the internal GPS antenna as location provider</string>
+    <string name="location_gps_source_use_internal_antenna">Use internal GPS antenna</string>
+    <string name="location_gps_source_not_available_summary">No GPS antenna is available</string>
+    <string name="location_gps_source_notification_title">Alert</string>
+    <string name="location_gps_source_notification">The GPS source has been switched.</string>
+
 </resources>
