@@ -20,6 +20,8 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -30,6 +32,7 @@ import android.location.LocationManager;
 import android.location.SettingInjectorService;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
+import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.Preference.OnPreferenceChangeListener;
 import android.preference.PreferenceActivity;
@@ -42,6 +45,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.widget.CompoundButton;
 import android.widget.Switch;
+import android.widget.Toast;
 
 import com.android.settings.R;
 import com.android.settings.cyanogenmod.LtoService;
@@ -50,7 +54,9 @@ import org.cyanogenmod.hardware.LongTermOrbits;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
+
 
 /**
  * Location access settings.
@@ -68,12 +74,15 @@ public class LocationSettings extends LocationSettingsBase
     private static final String KEY_RECENT_LOCATION_REQUESTS = "recent_location_requests";
     /** Key for preference category "Location services" */
     private static final String KEY_LOCATION_SERVICES = "location_services";
+    /** Key for preference list "GPS Sources" */
+    private static final String KEY_LOCATION_GPS_SOURSE = "location_gps_source";
 
     private Switch mSwitch;
     private boolean mValidListener;
     private Preference mLocationMode;
     private CheckBoxPreference mGpsDownloadDataWifiOnly;
     private PreferenceCategory mCategoryRecentLocationRequests;
+    private ListPreference mGpsBtPref;
     /** Receives UPDATE_INTENT  */
     private BroadcastReceiver mReceiver;
 
@@ -161,6 +170,36 @@ public class LocationSettings extends LocationSettingsBase
             banner.setTitle(R.string.location_no_recent_apps);
             banner.setSelectable(false);
             mCategoryRecentLocationRequests.addPreference(banner);
+        }
+        
+        mGpsBtPref = (ListPreference) findPreference(KEY_LOCATION_GPS_SOURSE);
+        ArrayList<CharSequence> entries = new ArrayList<CharSequence>();
+        ArrayList<CharSequence> values = new ArrayList<CharSequence>();
+        if (getResources().getBoolean(R.bool.has_location_gps)) {
+            for (String e : getResources().getStringArray(R.array.location_entries_gps_source) ) {
+                entries.add(e);
+            }
+            for (String v: getResources().getStringArray(R.array.location_values_gps_source)) {
+                values.add(v);
+            }
+        }
+        // Add known connected Bluetooth devices
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if ((mBluetoothAdapter != null) && (mBluetoothAdapter.isEnabled())) {
+            for (BluetoothDevice d : mBluetoothAdapter.getBondedDevices()) {
+                String dname = d.getName() + " - " + d.getAddress();
+                entries.add(dname);
+                values.add(d.getAddress());
+            }
+        }
+        mGpsBtPref.setEntries(entries.toArray(new CharSequence[entries.size()]));
+        mGpsBtPref.setEntryValues(values.toArray(new CharSequence[values.size()]));
+        mGpsBtPref.setDefaultValue("0");
+        mGpsBtPref.setOnPreferenceChangeListener(this);
+        // Disable preference if GPS source is not available
+        if (entries.size() == 0 && values.size() == 0) {
+            mGpsBtPref.setSummary(R.string.location_gps_source_not_available_summary);
+            mGpsBtPref.setEnabled(false);
         }
 
         addLocationServices(activity, root);
@@ -288,6 +327,17 @@ public class LocationSettings extends LocationSettingsBase
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         if (mGpsDownloadDataWifiOnly != null && preference.equals(mGpsDownloadDataWifiOnly)) {
             updateLtoServiceStatus(getActivity(), isLocationModeEnabled(getActivity()));
+        } else if (pref.getKey().equals(KEY_LOCATION_GPS_SOURSE)) {
+            String oldPref = Settings.System.getString(getContentResolver(), Settings.Secure.EXTERNAL_GPS_BT_DEVICE);
+            String newPref = newValue == null ? "0" : (String) newValue;
+            // "0" represents the internal GPS
+            Settings.System.putString(getContentResolver(), Settings.Secure.EXTERNAL_GPS_BT_DEVICE, newPref);
+            if (!oldPref.equals(newPref) && ("0".equals(oldPref) || "0".equals(newPref))) {
+                LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+                locationManager.setGpsSource(newPref);
+                // Show msg to inform user that source has been switched
+                Toast.makeText(this.getActivity(), getResources().getString(R.string.location_gps_source_notification), Toast.LENGTH_LONG).show();
+            }
         }
         return true;
     }
