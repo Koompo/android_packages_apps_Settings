@@ -327,7 +327,7 @@ public class LocationSettings extends LocationSettingsBase
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         if (mGpsDownloadDataWifiOnly != null && preference.equals(mGpsDownloadDataWifiOnly)) {
             updateLtoServiceStatus(getActivity(), isLocationModeEnabled(getActivity()));
-        } else if (pref.getKey().equals(KEY_LOCATION_GPS_SOURSE)) {
+        } else if (preference.getKey().equals(KEY_LOCATION_GPS_SOURSE)) {
             String oldPref = Settings.System.getString(getContentResolver(), Settings.Secure.EXTERNAL_GPS_BT_DEVICE);
             String newPref = newValue == null ? "0" : (String) newValue;
             // "0" represents the internal GPS
